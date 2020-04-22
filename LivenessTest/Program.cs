@@ -24,14 +24,26 @@ namespace LivenessTest
             await Task.Run(() =>
             {
                 int cnt = 0;
+                int numReplicas = 0;
 
                 while (true)
                 {
                     Task.ExploreContextSwitch();
+
                     if (cnt == 100)
                     {
                         cnt = 0;
-                        Specification.Monitor<LivenessMonitor>(new UpEvent());
+
+                        if (numReplicas < 3)
+                        {
+                            numReplicas++;
+                            Specification.Monitor<LivenessMonitor>(new UpEvent());
+                        }
+                        else
+                        {
+                            numReplicas--;
+                            Specification.Monitor<LivenessMonitor>(new DownEvent());
+                        }
                     }
                     else
                     {
