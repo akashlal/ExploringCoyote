@@ -1,5 +1,10 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
+using Microsoft.Coyote;
+using Microsoft.Coyote.IO;
+using Microsoft.Coyote.Random;
 using Microsoft.Coyote.Specifications;
+using Microsoft.Coyote.SystematicTesting;
 using Microsoft.Coyote.Tasks;
 
 namespace LivenessTest
@@ -16,39 +21,73 @@ namespace LivenessTest
         {
             Specification.RegisterMonitor<LivenessMonitor>();
 
-            var lck = AsyncLock.Create();
-            int x = 0;
-
-            var t1 = Task.Run(async () =>
+            await Task.Run(() =>
             {
+                int cnt = 0;
+
                 while (true)
                 {
-                    using (await lck.AcquireAsync())
+                    Task.ExploreContextSwitch();
+                    if (cnt == 100)
                     {
-                        x++;
+                        cnt = 0;
+                        Specification.Monitor<LivenessMonitor>(new UpEvent());
+                    }
+                    else
+                    {
+                        cnt++;
                     }
                 }
             });
-
-            var t2 = Task.Run(async () =>
-            {
-                while (true)
-                {
-                    using (await lck.AcquireAsync())
-                    {
-                        x++;
-                    }
-                }
-            });
-
-            await Task.WhenAll(t1, t2);
         }
+
     }
+
+    class UpEvent : Event { }
+    class DownEvent : Event { }
 
     class LivenessMonitor : Monitor
     {
+        int NumReplicas = 0;
+
         [Start]
         [Hot]
-        class S : State { }
+        [OnEventDoAction(typeof(UpEvent), nameof(OnUp))]
+        [OnEventDoAction(typeof(DownEvent), nameof(OnDown))]
+        class NotEnough : State { }
+
+        [Cold]
+        [OnEventDoAction(typeof(UpEvent), nameof(OnUp))]
+        [OnEventDoAction(typeof(DownEvent), nameof(OnDown))]
+        class Enough : State { }
+
+        void OnUp()
+        {
+            NumReplicas++;
+
+            if(NumReplicas >= 3)
+            {
+                this.RaiseGotoStateEvent<Enough>();
+            }
+            else
+            {
+                this.RaiseGotoStateEvent<NotEnough>();
+            }
+        }
+
+        void OnDown()
+        {
+            NumReplicas++;
+
+            if (NumReplicas >= 3)
+            {
+                this.RaiseGotoStateEvent<Enough>();
+            }
+            else
+            {
+                this.RaiseGotoStateEvent<NotEnough>();
+            }
+        }
+
     }
 }
