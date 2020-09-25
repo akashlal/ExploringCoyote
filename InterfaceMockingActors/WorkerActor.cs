@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Coyote;
 using Microsoft.Coyote.Actors;
-using CoyoteTasks = Microsoft.Coyote.Tasks;
 
 namespace InterfaceMockingActors
 {
