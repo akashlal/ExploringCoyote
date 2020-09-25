@@ -19,10 +19,10 @@ namespace InterfaceMockingActors
 
         public async Task<string> Get(string key)
         {
-            var tcs = CoyoteTasks.TaskCompletionSource.Create<string>();
-            this.storeId.Runtime.SendEvent(storeId, new GetEvent(key, tcs));
-            await tcs.Task;
-            return tcs.Task.Result;
+            var eg = new AwaitableEventGroup<string>();
+            this.storeId.Runtime.SendEvent(storeId, new GetEvent(key, null), eg);            
+            await eg;
+            return eg.Task.Result;
         }
 
         public Task Put(string key, string value)

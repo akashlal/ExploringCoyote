@@ -41,15 +41,15 @@ namespace InterfaceMockingActors
         private void GetHandler(Event ev)
         {
             var key = (ev as GetEvent).Key;
-            var tcs = (ev as GetEvent).ResponseTcs;
+            var eg = this.CurrentEventGroup as AwaitableEventGroup<string>;
 
             if (Store.ContainsKey(key))
             {
-                tcs.SetResult(Store[key]);
+                eg.SetResult(Store[key]);
             }
             else
             {
-                tcs.SetResult(null);
+                eg.SetResult(null);
             }
         }
 
